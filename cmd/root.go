@@ -68,7 +68,6 @@ func init() {
 }
 
 func launch() error {
-
 	if err := verifyFlags(); err != nil {
 		return err
 	}
@@ -106,7 +105,6 @@ func launch() error {
 }
 
 func verifyFlags() error {
-
 	var flagErrors error
 
 	discordAppID = os.Getenv(environmentVariablePrefix + "_DISCORD_APP_ID")
