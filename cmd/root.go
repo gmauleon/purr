@@ -59,43 +59,18 @@ func Execute() {
 func init() {
 	logger = zap.Must(zap.NewProduction())
 
-	rootCmd.PersistentFlags().StringVar(&discordAppID, "discord-app-id", os.Getenv(environmentVariablePrefix+"_DISCORD_APP_ID"), "Discord application ID")
-	rootCmd.PersistentFlags().StringVar(&discordToken, "discord-token", os.Getenv(environmentVariablePrefix+"_DISCORD_TOKEN"), "Discord token")
-	rootCmd.PersistentFlags().StringSliceVar(&discordAuthorizedUserIDs, "discord-authorized-user-ids", strings.Split(os.Getenv(environmentVariablePrefix+"_DISCORD_AUTHORIZED_USER_IDS"), ","), "Discord authorized users IDs")
-	rootCmd.PersistentFlags().StringVar(&immichURL, "immich-url", os.Getenv(environmentVariablePrefix+"_IMMICH_URL"), "Immich URL")
-	rootCmd.PersistentFlags().StringVar(&immichAPIKey, "immich-api-key", os.Getenv(environmentVariablePrefix+"_IMMICH_API_KEY"), "Immich API key")
-	rootCmd.PersistentFlags().StringVar(&cachePath, "cache-path", os.Getenv(environmentVariablePrefix+"_CACHE_PATH"), "Cache path to temporarily store images")
+	rootCmd.PersistentFlags().StringVar(&discordAppID, "discord-app-id", "", "Discord application ID")
+	rootCmd.PersistentFlags().StringVar(&discordToken, "discord-token", "", "Discord token")
+	rootCmd.PersistentFlags().StringSliceVar(&discordAuthorizedUserIDs, "discord-authorized-user-ids", []string{}, "Discord authorized users IDs")
+	rootCmd.PersistentFlags().StringVar(&immichURL, "immich-url", "", "Immich URL")
+	rootCmd.PersistentFlags().StringVar(&immichAPIKey, "immich-api-key", "", "Immich API key")
+	rootCmd.PersistentFlags().StringVar(&cachePath, "cache-path", "", "Cache path to temporarily store images")
 }
 
 func launch() error {
-	var flagErrors error
 
-	if discordAppID == "" {
-		flagErrors = multierror.Append(flagErrors, errors.New("discord-app-id is required"))
-	}
-
-	if discordToken == "" {
-		flagErrors = multierror.Append(flagErrors, errors.New("discord-token is required"))
-	}
-
-	if discordAuthorizedUserIDs[0] == "" {
-		flagErrors = multierror.Append(flagErrors, errors.New("discord-authorized-user-ids is required"))
-	}
-
-	if immichURL == "" {
-		flagErrors = multierror.Append(flagErrors, errors.New("immich-url is required"))
-	}
-
-	if immichAPIKey == "" {
-		flagErrors = multierror.Append(flagErrors, errors.New("immich-api-key is required"))
-	}
-
-	if cachePath == "" {
-		flagErrors = multierror.Append(flagErrors, errors.New("cache-path is required"))
-	}
-
-	if flagErrors != nil {
-		return flagErrors
+	if err := verifyFlags(); err != nil {
+		return err
 	}
 
 	// Create Discord bot
@@ -130,6 +105,43 @@ func launch() error {
 	return nil
 }
 
+func verifyFlags() error {
+
+	var flagErrors error
+
+	discordAppID = os.Getenv(environmentVariablePrefix + "_DISCORD_APP_ID")
+	if discordAppID == "" {
+		flagErrors = multierror.Append(flagErrors, errors.New("discord-app-id is required"))
+	}
+
+	discordToken = os.Getenv(environmentVariablePrefix + "_DISCORD_TOKEN")
+	if discordToken == "" {
+		flagErrors = multierror.Append(flagErrors, errors.New("discord-token is required"))
+	}
+
+	discordAuthorizedUserIDs = strings.Split(os.Getenv(environmentVariablePrefix+"_DISCORD_AUTHORIZED_USER_IDS"), ",")
+	if discordAuthorizedUserIDs[0] == "" {
+		flagErrors = multierror.Append(flagErrors, errors.New("discord-authorized-user-ids is required"))
+	}
+
+	immichURL = os.Getenv(environmentVariablePrefix + "_IMMICH_URL")
+	if immichURL == "" {
+		flagErrors = multierror.Append(flagErrors, errors.New("immich-url is required"))
+	}
+
+	immichAPIKey = os.Getenv(environmentVariablePrefix + "_IMMICH_API_KEY")
+	if immichAPIKey == "" {
+		flagErrors = multierror.Append(flagErrors, errors.New("immich-api-key is required"))
+	}
+
+	cachePath = os.Getenv(environmentVariablePrefix + "_CACHE_PATH")
+	if cachePath == "" {
+		flagErrors = multierror.Append(flagErrors, errors.New("cache-path is required"))
+	}
+
+	return flagErrors
+}
+
 // Function to download the image
 func createImmichCallback(ctx context.Context, immichClient *immich.Client, cachePath string) discord.InteractionCallback {
 	return func(filename string, url string, messageTime time.Time) (string, error) {
@@ -138,7 +150,7 @@ func createImmichCallback(ctx context.Context, immichClient *immich.Client, cach
 		// Create a file to save the image
 		out, err := os.Create(fullPath)
 		if err != nil {
-			return internalErrorStatus, fmt.Errorf("failed to create file: %w", err)
+			return fmt.Sprintf("%s: %s\n", filename, internalErrorStatus), fmt.Errorf("failed to create file: %w", err)
 		}
 		defer out.Close()
 		defer os.Remove(fullPath)
@@ -146,19 +158,19 @@ func createImmichCallback(ctx context.Context, immichClient *immich.Client, cach
 		// Get the image from the URL
 		resp, err := http.Get(url)
 		if err != nil {
-			return internalErrorStatus, fmt.Errorf("failed http get: %w", err)
+			return fmt.Sprintf("%s: %s\n", filename, internalErrorStatus), fmt.Errorf("failed http get: %w", err)
 		}
 		defer resp.Body.Close()
 
 		// Write the image to the file
 		_, err = io.Copy(out, resp.Body)
 		if err != nil {
-			return internalErrorStatus, fmt.Errorf("failed to write image: %w", err)
+			return fmt.Sprintf("%s: %s\n", filename, internalErrorStatus), fmt.Errorf("failed to write image: %w", err)
 		}
 
 		immichResponse, err := immichClient.UploadAsset(ctx, fullPath, messageTime, messageTime)
 		if err != nil {
-			return internalErrorStatus, fmt.Errorf("failed to upliad asset: %w", err)
+			return fmt.Sprintf("%s: %s\n", filename, internalErrorStatus), fmt.Errorf("failed to upload asset: %w", err)
 		}
 
 		return fmt.Sprintf("%s: %s\n", filename, immichResponse.Status), nil
