@@ -1,6 +1,6 @@
 services:
   purr:
-    image: gmauleon/purr
+    image: gmauleon/purr:latest
     container_name: purr
     volumes:
       - ./cache:/cache
