@@ -120,9 +120,16 @@ func (b *Bot) botInteraction(session *discordgo.Session, interaction *discordgo.
 
 	for _, i := range b.Interactions {
 		if interaction.ApplicationCommandData().Name == i.Name {
-			// Check if the boss is interacting
-			if !slices.Contains(i.AuthorizedUserIDs, interaction.User.ID) {
-				b.logger.Info("interaction detected but is not authorized for that user", zap.String("name", interaction.Member.User.Username))
+			// Check if an authorized user is interacting
+			var user *discordgo.User
+			if interaction.User != nil {
+				user = interaction.User
+			} else if interaction.Member.User != nil {
+				user = interaction.Member.User
+			}
+
+			if !slices.Contains(i.AuthorizedUserIDs, user.ID) {
+				b.logger.Info("interaction detected but is not authorized for that user", zap.String("name", user.Username))
 				return
 			}
 
