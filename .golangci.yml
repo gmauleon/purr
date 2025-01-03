@@ -1,0 +1,52 @@
+run:
+  timeout: 3m
+
+linters-settings:
+  gocritic:
+    enabled-checks:
+      - httpNoBody
+      - emptyStringTest
+      - builtinShadow
+      - exposedSyncMutex
+    enabled-tags:
+      - diagnostic
+    disabled-tags:
+      - performance
+      - style
+      - experimental
+      - opinionated
+
+linters:
+  disable-all: true
+  enable:
+    - gocritic
+    - gosimple
+    - govet
+    - ineffassign
+    - misspell
+    - whitespace
+    - gofmt
+    - gci
+    - goimports
+    - loggercheck
+    - asasalint
+    - contextcheck
+    - decorder
+    - dogsled
+    - errchkjson
+    - ginkgolinter
+    - gocheckcompilerdirectives
+    - goprintffuncname
+    - mirror
+    - nakedret
+    - stylecheck
+    - unused
+    - goconst
+    - makezero
+    - unparam
+    - prealloc
+    - predeclared
+    - unconvert
+    - unparam
+    - whitespace
+    - errcheck

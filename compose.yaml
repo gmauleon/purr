@@ -1,0 +1,16 @@
+services:
+  purr:
+    image: gmauleon/purr
+    container_name: purr
+    volumes:
+      - ./cache:/cache
+    env_file:
+      - path: .env
+        required: true
+    environment:
+      PURR_DISCORD_APP_ID: ${PURR_DISCORD_APP_ID}
+      PURR_DISCORD_TOKEN: ${PURR_DISCORD_TOKEN}
+      PURR_DISCORD_AUTHORIZED_USER_IDS: ${PURR_DISCORD_AUTHORIZED_USER_IDS}
+      PURR_IMMICH_URL: ${PURR_IMMICH_URL}
+      PURR_IMMICH_API_KEY: ${PURR_IMMICH_API_KEY}
+      PURR_CACHE_PATH: "/cache"
