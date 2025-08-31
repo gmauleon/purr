@@ -144,7 +144,7 @@ func (b *Bot) botInteraction(session *discordgo.Session, interaction *discordgo.
 			if len(message.Attachments) > 0 {
 				for _, a := range message.Attachments {
 					// Check if the attachment is an image
-					if strings.HasPrefix(a.ContentType, "image/") {
+					if strings.HasPrefix(a.ContentType, "image/") || strings.HasPrefix(a.ContentType, "video/") {
 						status, err := i.Callback(a.Filename, a.URL, messageTime)
 						if err != nil {
 							b.logger.Error("failed callback", zap.String("image", a.Filename), zap.Error(err))
